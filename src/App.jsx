@@ -34,9 +34,23 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text, mode }),
       });
-      const data = await res.json();
-      setAiResponse(data.result);
+
+      const contentType = res.headers.get("content-type");
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Server error: ${errorText}`);
+      }
+
+      if (contentType && contentType.includes("application/json")) {
+        const data = await res.json();
+        setAiResponse(data.result || "No result returned.");
+      } else {
+        const rawText = await res.text();
+        throw new Error(`Invalid JSON response: ${rawText}`);
+      }
     } catch (err) {
+      console.error("AI Error:", err);
       setAiResponse("Error: " + err.message);
     } finally {
       setLoading(false);
