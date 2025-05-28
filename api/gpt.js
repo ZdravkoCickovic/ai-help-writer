@@ -4,35 +4,61 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-export default async function handler(req, res) {
+export default async function handler(req) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method Not Allowed" });
+    return new Response(JSON.stringify({ error: "Method Not Allowed" }), {
+      status: 405,
+      headers: { "Content-Type": "application/json" },
+    });
   }
-  const { text, mode } = req.body;
+
+  let body;
+  try {
+    body = await req.json();
+  } catch (err) {
+    return new Response(JSON.stringify({ error: "Invalid JSON" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const { text, mode } = body;
+
   if (!text || !mode) {
-    return res.status(400).json({ error: "Missing parameters" });
+    return new Response(JSON.stringify({ error: "Missing parameters" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   let prompt;
   if (mode === "summarize") {
-    prompt = `Summarize the following text in a concise paragraph:\n\n${text}`;
+    prompt = `Summarize the following text:\n\n${text}`;
   } else if (mode === "title") {
-    prompt = `Generate a creative, catchy title for this text:\n\n${text}`;
+    prompt = `Generate a creative title for:\n\n${text}`;
   } else if (mode === "continue") {
-    prompt = `Continue writing the following text in the same style:\n\n${text}`;
+    prompt = `Continue writing this:\n\n${text}`;
   } else {
     prompt = text;
   }
 
   try {
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o",
       messages: [{ role: "user", content: prompt }],
     });
 
     const result = completion.choices[0].message.content.trim();
-    res.status(200).json({ result });
-  } catch (error) {
-    res.status(500).json({ error: error.message || "GPT error" });
+
+    return new Response(JSON.stringify({ result }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (err) {
+    console.error("GPT Error:", err);
+    return new Response(JSON.stringify({ error: err.message || "GPT error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }
