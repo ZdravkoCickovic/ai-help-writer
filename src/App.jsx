@@ -28,6 +28,7 @@ export default function App() {
 
   async function handleGPT() {
     setLoading(true);
+
     try {
       const res = await fetch("/api/gpt", {
         method: "POST",
@@ -39,19 +40,26 @@ export default function App() {
 
       if (!res.ok) {
         const errorText = await res.text();
-        throw new Error(`Server error: ${errorText}`);
+        throw new Error(`Server error (${res.status}): ${errorText}`);
       }
 
+      // Ensure it's JSON before trying to parse it
       if (contentType && contentType.includes("application/json")) {
         const data = await res.json();
-        setAiResponse(data.result || "No result returned.");
+        if (data.result) {
+          setAiResponse(data.result);
+        } else if (data.error) {
+          throw new Error(data.error);
+        } else {
+          throw new Error("No valid response returned from GPT");
+        }
       } else {
         const rawText = await res.text();
-        throw new Error(`Invalid JSON response: ${rawText}`);
+        throw new Error(`Unexpected response format: ${rawText}`);
       }
     } catch (err) {
       console.error("AI Error:", err);
-      setAiResponse("Error: " + err.message);
+      setAiResponse("⚠️ " + err.message);
     } finally {
       setLoading(false);
     }
