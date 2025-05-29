@@ -4,31 +4,15 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-export default async function handler(req) {
+export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method Not Allowed" }), {
-      status: 405,
-      headers: { "Content-Type": "application/json" },
-    });
+    return res.status(405).json({ error: "Method Not Allowed" });
   }
 
-  let body;
-  try {
-    body = await req.json();
-  } catch (err) {
-    return new Response(JSON.stringify({ error: "Invalid JSON" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  const { text, mode } = body;
+  const { text, mode } = req.body;
 
   if (!text || !mode) {
-    return new Response(JSON.stringify({ error: "Missing parameters" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
+    return res.status(400).json({ error: "Missing parameters" });
   }
 
   let prompt;
@@ -49,16 +33,9 @@ export default async function handler(req) {
     });
 
     const result = completion.choices[0].message.content.trim();
-
-    return new Response(JSON.stringify({ result }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    return res.status(200).json({ result });
   } catch (err) {
     console.error("GPT Error:", err);
-    return new Response(JSON.stringify({ error: err.message || "GPT error" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return res.status(500).json({ error: err.message || "GPT error" });
   }
 }
