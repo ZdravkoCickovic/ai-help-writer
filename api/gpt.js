@@ -1,5 +1,7 @@
 import OpenAI from "openai";
 
+console.log("🔐 ENV CHECK:", process.env.OPENAI_API_KEY ? "Key loaded ✅" : "Key missing ❌");
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -10,6 +12,7 @@ export default async function handler(req, res) {
   }
 
   const { text, mode } = req.body;
+
   if (!text || !mode) {
     return res.status(400).json({ error: "Missing parameters" });
   }
@@ -27,14 +30,14 @@ export default async function handler(req, res) {
 
   try {
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo", // ✅ Works with free tier
+      model: "gpt-3.5-turbo", // ✅ Safe for free tier
       messages: [{ role: "user", content: prompt }],
     });
 
     const result = completion.choices[0].message.content.trim();
     res.status(200).json({ result });
   } catch (error) {
+    console.error("🔥 GPT Error:", error); // Log full error on Vercel
     res.status(500).json({ error: error.message || "GPT error" });
   }
 }
-
